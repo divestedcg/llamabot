@@ -3,7 +3,7 @@ Bayebot
 
 Overview
 --------
-LLaMA.cpp over XMPP
+LLaMA over XMPP
 
 Quick Start
 -----------
@@ -12,13 +12,12 @@ Quick Start
 
 Prebuilts
 ---------
-- via CI: https://gitlab.com/divested/xmpp-llama/-/jobs/artifacts/master/browse?job=build
-
+- via CI: https://gitlab.com/divested/llamabot/-/jobs/artifacts/master/browse?job=build
 
 Credits
 -------
+- llama.cpp (MIT), https://github.com/ggerganov/llama.cpp
 - Tigase Java XMPP Client Library (AGPL-3.0), https://github.com/tigase/jaxmpp
-- Classifier4J (Apache-1.1, with permission granted for use under Apache-2.0), http://classifier4j.sourceforge.net
 
 Donate
 -------
