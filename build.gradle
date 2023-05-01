@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://maven-repo.tigase.org/repository/release"
+    }
+}
+
+dependencies {
+    implementation 'tigase:jaxmpp-all:3.6.0'
+}
+
+sourceSets {
+    main {
+         java {
+            srcDirs = ['src']
+         }
+    }
+}
+
+jar {
+    duplicatesStrategy = 'warn'
+    manifest {
+        attributes("Main-Class": "Main")
+    }
+    from {
+        configurations.compileClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    } {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+def getVersionGit() {
+    def versionGit = ""
+    try {
+        def gitAvailable = "command -v git".execute()
+        gitAvailable.waitFor()
+        if(gitAvailable.exitValue() == 0) {
+            def commit = "git rev-parse --short HEAD".execute().text.trim()
+            def commitDate = "git show -s --format=%cs ".concat(commit).execute().text.trim()
+            versionGit = "_" + commitDate + '_' + commit
+        } else {
+            println("git is unavailable")
+        }
+    } catch (Exception e) {
+        println("unable to check for git")
+    }
+    return versionGit
+}
+version = getVersionGit()
