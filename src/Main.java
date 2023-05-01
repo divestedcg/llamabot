@@ -40,8 +40,8 @@ public class Main {
     private static String botAccountPassword = "";
     private static File cfgRooms;
     private static Room handlingRoom;
-
-    private static final int ignoreLines = 6;
+    private static Thread llamaHandler;
+    private static Process llamaProcess;
 
     public static void main(String[] args) {
         boolean fatal = false;
@@ -100,7 +100,7 @@ public class Main {
                     try {
                         if (message.getBody() != null) {
                             String messageTxt = message.getBody().toString();
-                            //handleBotAction(messageTxt, room);
+                            handleBotAction(messageTxt, room);
                             System.out.println("[DEBUG RECV] " + messageTxt);
                             if(allowedToTalk && llamaOutPrinter != null && checkLine(messageTxt) && messageTxt.startsWith(joiningNickname)) {
                                 handlingRoom = room;
@@ -202,6 +202,28 @@ public class Main {
             if (message.equalsIgnoreCase(joiningNickname + " status")) {
                 bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Still here...");
             }
+            if (message.equalsIgnoreCase(joiningNickname + " restart")) {
+                try {
+                    llamaHandler.interrupt();
+                    llamaHandler.interrupt();
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                try {
+                    llamaHandler.stop();
+                    llamaHandler.stop();
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                try {
+                    llamaProcess.destroyForcibly();
+                    llamaProcess.destroyForcibly();
+                } catch(Exception e) {
+                    e.printStackTrace();
+                }
+                startLlama();
+                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Restarting llama.cpp");
+            }
             if (message.equalsIgnoreCase(joiningNickname + " halt")) {
                 bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Goodbye!");
                 bot.disconnect();
@@ -214,12 +236,11 @@ public class Main {
 
     public static void startLlama() {
         try {
-            Process llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
+            llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
             llamaIn = new Scanner(new InputStreamReader(llamaProcess.getInputStream()));
             llamaOutPrinter = new PrintWriter(new OutputStreamWriter(llamaProcess.getOutputStream()));
-            Thread llamaHandler = new Thread(() -> {
+            llamaHandler = new Thread(() -> {
                 boolean llamaStarted = false;
-                boolean multiline = false;
                 while(true) {
                     try {
                         while(llamaIn.hasNextLine()) {
@@ -227,8 +248,10 @@ public class Main {
                             System.out.println("[DEBUG] " + line);
 
                             if(llamaStarted) {
-                                line = line.trim().replaceAll("User:Bob:", "").replaceAll("Bob:", "").trim();
-                                bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(line);
+                                line = line.trim().replaceAll("User:Bob:", "").replaceAll("Bob:", "").replaceAll("User:", "").trim();
+                                if(line.length() > 3) {
+                                    bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(line);
+                                }
                             }
 
                             //if(line.startsWith("Bob: Sure. The largest city in Europe is Moscow, the capital of Russia.")) {
