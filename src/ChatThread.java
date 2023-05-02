@@ -8,6 +8,7 @@ import tigase.jaxmpp.core.client.xmpp.stanzas.Message;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
 public class ChatThread {
@@ -21,7 +22,7 @@ public class ChatThread {
     private PrintWriter llamaOutPrinter = null;
     private String name = "";
     public boolean oneOne = false;
-    private long lastMessageReceved = System.currentTimeMillis();
+    private long lastMessageReceived = System.currentTimeMillis();
     private boolean stopped = true;
 
     public ChatThread(Chat chat) {
@@ -40,21 +41,25 @@ public class ChatThread {
     }
 
     private void sendMessage(String message) throws JaxmppException {
-        if (handlingChat != null) {
-            Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
-            System.out.println("[DEBUG SEND TO USER @ " + name + "] " /*+ message*/);
-        }
-        if (handlingRoom != null) {
-            Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
-            System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " /*+ message*/);
+        if(StandardCharsets.US_ASCII.newEncoder().canEncode(message)) {
+            if (handlingChat != null) {
+                Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
+                System.out.println("[DEBUG SEND TO USER @ " + name + "] " /*+ message*/);
+            }
+            if (handlingRoom != null) {
+                Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
+                System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " /*+ message*/);
+            }
+        } else {
+            System.out.println("[DEBUG INVALID MESSAGE @ " + name + "] " /*+ message*/);
         }
     }
 
     public void handleMessage(Message message) {
         try {
-            lastMessageReceved = System.currentTimeMillis();
+            lastMessageReceived = System.currentTimeMillis();
             if (message != null && message.getBody() != null) {
-                String messageTxt = message.getBody();
+                String messageTxt = message.getBody().trim();
                 System.out.println("[DEBUG RECV @ " + name + "] " /*+ message*/);
 
                 if ((messageTxt.startsWith(Main.joiningNickname) || oneOne) && checkLine(messageTxt)) {
@@ -121,7 +126,7 @@ public class ChatThread {
 
             new Thread(() -> {
                 while (!stopped) {
-                    if ((System.currentTimeMillis() - lastMessageReceved) >= (1000 * 60 * 10)) {
+                    if ((System.currentTimeMillis() - lastMessageReceived) >= (1000 * 60 * 10)) {
                         stopLlama();
                     }
                 }
@@ -161,7 +166,7 @@ public class ChatThread {
     }
 
     public boolean checkLine(String line) {
-        return !line.startsWith("> ") && !line.startsWith("https://") && !line.startsWith("http://");
+        return !line.startsWith("> ") && !line.startsWith("https://") && !line.startsWith("http://") && StandardCharsets.US_ASCII.newEncoder().canEncode(line);
     }
 
     public void stopLlama() {
