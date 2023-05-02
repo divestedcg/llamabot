@@ -97,7 +97,7 @@ public class Main {
                     if (chat != null && chat.getJid() != null && chat.getJid().getBareJid() != null && message != null && message.getBody() != null && message.getBody().trim().length() > 1 && !chat.getJid().getBareJid().equals(botAccount)) {
                         if(!processedMessages.contains(message.getId())) {
                             processedMessages.add(message.getId());
-                            System.out.println("[Processing message] " + message.getId() + " "  + message.getBody());
+                            //System.out.println("[Processing message] " + message.getId() + " " /* + message.getBody()*/);
                             if (chatThreads.containsKey(chat.getJid().getBareJid().toString())) {
                                 chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
                             } else {
