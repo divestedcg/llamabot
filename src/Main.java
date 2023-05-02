@@ -18,6 +18,8 @@
 import tigase.jaxmpp.core.client.BareJID;
 import tigase.jaxmpp.core.client.SessionObject;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
+import tigase.jaxmpp.core.client.xmpp.modules.chat.Chat;
+import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.MucModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.Room;
 import tigase.jaxmpp.core.client.xmpp.stanzas.Message;
@@ -30,18 +32,14 @@ import java.util.*;
 
 public class Main {
 
-    private static boolean allowedToTalk = true;
-    private static Scanner llamaIn;
-    private static PrintWriter llamaOutPrinter;
-    private static final Jaxmpp bot = new Jaxmpp();
-    private static String joiningNickname = "chariclea" + new Random().nextInt(10000);
+    public static final Jaxmpp bot = new Jaxmpp();
+    public static String joiningNickname = "chariclea" + new Random().nextInt(10000);
 
     private static String botAccount = "";
     private static String botAccountPassword = "";
     private static File cfgRooms;
-    private static Room handlingRoom;
-    private static Thread llamaHandler;
-    private static Process llamaProcess;
+
+    private static HashMap<String, ChatThread>
 
     public static void main(String[] args) {
         boolean fatal = false;
@@ -91,31 +89,15 @@ public class Main {
         try {
             Presence.initialize(bot);
             bot.getModulesManager().register(new MucModule());
+            bot.getModulesManager().register(new MessageModule());
             bot.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(botAccount));
             bot.getProperties().setUserProperty(SessionObject.PASSWORD, botAccountPassword);
+            bot.getEventBus().addHandler(MessageModule.MessageReceivedHandler.MessageReceivedEvent.class, (sessionObject, chat, message) -> {
 
-            bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, new MucModule.MucMessageReceivedHandler() {
-                @Override
-                public void onMucMessageReceived(SessionObject sessionObject, Message message, Room room, String nickname, Date timestamp) {
-                    try {
-                        if (message.getBody() != null) {
-                            String messageTxt = message.getBody().toString();
-                            handleBotAction(messageTxt, room);
-                            System.out.println("[DEBUG RECV] " + messageTxt);
-                            if(allowedToTalk && llamaOutPrinter != null && checkLine(messageTxt) && messageTxt.startsWith(joiningNickname)) {
-                                handlingRoom = room;
-                                messageTxt = messageTxt.substring(joiningNickname.length() + 1);
-                                System.out.println("[DEBUG SEND TO BOT] " + messageTxt);
-                                llamaOutPrinter.println(messageTxt);
-                                llamaOutPrinter.flush();
-                            }
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
             });
+            bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
 
+            });
             bot.login();
             int tryCounter = 0;
             while (!bot.isConnected() && tryCounter <= 10) {
@@ -125,7 +107,6 @@ public class Main {
             if (bot.isConnected()) {
                 System.out.println("[INIT] Connected as " + joiningNickname);
                 connectToRooms(cfgRooms);
-                startLlama();
 
                 while (true) { //XXX: This shouldn't be necessary, but my connection is killed without it?
                     if(!bot.isConnected()) {
@@ -161,10 +142,6 @@ public class Main {
         return contents;
     }
 
-    public static boolean checkLine(String line) {
-        return !line.startsWith("> ") && !line.startsWith("https://");
-    }
-
     public static void connectToRooms(File cfgRooms) {
         int count = 0;
         ArrayList<String> rooms = readFileToArray(cfgRooms);
@@ -187,89 +164,5 @@ public class Main {
         botAccount = account.get(0);
         botAccountPassword = account.get(1);
         System.out.println("[BOT] Operating under " + botAccount);
-    }
-
-    public static void handleBotAction(String message, Room room) {
-        try {
-            if (message.equalsIgnoreCase(joiningNickname + " stop") && allowedToTalk) {
-                allowedToTalk = false;
-                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Disabled responses");
-            }
-            if (message.equalsIgnoreCase(joiningNickname + " start") && !allowedToTalk) {
-                allowedToTalk = true;
-                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Enabled responses");
-            }
-            if (message.equalsIgnoreCase(joiningNickname + " status")) {
-                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Still here...");
-            }
-            if (message.equalsIgnoreCase(joiningNickname + " restart")) {
-                try {
-                    llamaHandler.interrupt();
-                    llamaHandler.interrupt();
-                } catch(Exception e) {
-                    e.printStackTrace();
-                }
-                try {
-                    llamaHandler.stop();
-                    llamaHandler.stop();
-                } catch(Exception e) {
-                    e.printStackTrace();
-                }
-                try {
-                    llamaProcess.destroyForcibly();
-                    llamaProcess.destroyForcibly();
-                } catch(Exception e) {
-                    e.printStackTrace();
-                }
-                startLlama();
-                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Restarting llama.cpp");
-            }
-            if (message.equalsIgnoreCase(joiningNickname + " halt")) {
-                bot.getModule(MucModule.class).getRoom(room.getRoomJid()).sendMessage("Goodbye!");
-                bot.disconnect();
-                System.exit(0);
-            }
-        } catch (JaxmppException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void startLlama() {
-        try {
-            llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
-            llamaIn = new Scanner(new InputStreamReader(llamaProcess.getInputStream()));
-            llamaOutPrinter = new PrintWriter(new OutputStreamWriter(llamaProcess.getOutputStream()));
-            llamaHandler = new Thread(() -> {
-                boolean llamaStarted = false;
-                while(true) {
-                    try {
-                        while(llamaIn.hasNextLine()) {
-                            String line = llamaIn.nextLine();
-                            System.out.println("[DEBUG] " + line);
-
-                            if(llamaStarted) {
-                                line = line.trim().replaceAll("User:Bob:", "").replaceAll("Bob:", "").replaceAll("User:", "").trim();
-                                if(line.length() > 3) {
-                                    bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(line);
-                                }
-                            }
-
-                            //if(line.startsWith("Bob: Sure. The largest city in Europe is Moscow, the capital of Russia.")) {
-                            if(line.startsWith("Bob: Blue")) {
-                                llamaStarted = true;
-                                System.out.println("[DEBUG] ENABLED RESPONSES");
-                            }
-                        }
-                        System.out.println("[DEBUG] " + "sleeping");
-                        Thread.sleep(50);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-            llamaHandler.start();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 }
