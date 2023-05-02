@@ -109,11 +109,13 @@ public class Main {
             bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
                 try {
                     if(room != null && room.getRoomJid() != null && message != null && message.getBody() != null) {
-                        if(chatThreads.containsKey(room.getRoomJid().toString())) {
-                            chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
-                        } else {
-                            chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
-                            chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                        if(message.getBody().startsWith(joiningNickname)) {
+                            if(chatThreads.containsKey(room.getRoomJid().toString())) {
+                                chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                            } else {
+                                chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
+                                chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                            }
                         }
                     }
                 } catch (XMLException e) {

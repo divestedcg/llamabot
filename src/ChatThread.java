@@ -38,6 +38,7 @@ public class ChatThread {
         handlingRoom = room;
         name = room.getRoomJid().toString();
         System.out.println("[DEBUG CREATED NEW THREAD @ " + name + "]");
+        startLlama();
     }
 
     private void sendMessage(String message) throws JaxmppException {
