@@ -92,28 +92,26 @@ public class Main {
             bot.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(botAccount));
             bot.getProperties().setUserProperty(SessionObject.PASSWORD, botAccountPassword);
             bot.getEventBus().addHandler(MessageModule.MessageReceivedHandler.MessageReceivedEvent.class, (sessionObject, chat, message) -> {
-                System.out.println("Received message " + message);
-                if(chatThreads.containsKey(chat.getJid().toString())) {
-                    chatThreads.get(chat.getJid().toString()).handleMessage(message);
-                } else {
-                    chatThreads.put(chat.getJid().toString(), new ChatThread(chat));
-                    chatThreads.get(chat.getJid().toString()).handleMessage(message);
+                if (chat != null && chat.getJid() != null) {
+                    if(chatThreads.containsKey(chat.getJid().toString())) {
+                        chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
+                    } else {
+                        chatThreads.put(chat.getJid().getBareJid().toString(), new ChatThread(chat));
+                        chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
+                    }
                 }
             });
             bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
-                if(chatThreads.containsKey(room.getRoomJid().toString())) {
-                    chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
-                } else {
-                    chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
-                    chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                if(room != null && room.getRoomJid() != null) {
+                    if(chatThreads.containsKey(room.getRoomJid().toString())) {
+                        chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                    } else {
+                        chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
+                        chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                    }
                 }
             });
-            bot.login();
-            int tryCounter = 0;
-            while (!bot.isConnected() && tryCounter <= 10) {
-                Thread.sleep(1000);
-                tryCounter++;
-            }
+            bot.login(true);
             if (bot.isConnected()) {
                 System.out.println("[INIT] Connected as " + joiningNickname);
                 connectToRooms(cfgRooms);
@@ -121,7 +119,7 @@ public class Main {
                 while (true) { //XXX: This shouldn't be necessary, but my connection is killed without it?
                     if(!bot.isConnected()) {
                         joiningNickname = "chariclea" + new Random().nextInt(10000);
-                        bot.login();
+                        bot.login(true);
                         connectToRooms(cfgRooms);
                         System.out.println("[INIT] Reconnected as " + joiningNickname);
                     }

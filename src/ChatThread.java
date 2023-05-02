@@ -22,10 +22,12 @@ public class ChatThread {
     private static Scanner llamaIn = null;
     private static PrintWriter llamaOutPrinter = null;
     private String name = "";
+    public boolean oneOne = false;
 
     public ChatThread(Chat chat) {
         handlingChat = chat;
-        name = chat.getJid().toString();
+        name = chat.getJid().getBareJid().toString();
+        oneOne = true;
         System.out.println("[DEBUG CREATED NEW THREAD @ " + name + "]");
     }
 
@@ -52,13 +54,13 @@ public class ChatThread {
                 String messageTxt = message.getBody();
                 System.out.println("[DEBUG RECV @ " + name + "] " + messageTxt);
 
-                if (messageTxt.startsWith(Main.joiningNickname) && checkLine(messageTxt)) {
+                if ((messageTxt.startsWith(Main.joiningNickname) || oneOne) && checkLine(messageTxt)) {
                     System.out.println("[DEBUG PROCESSING @ " + name + "]");
-                    handleBotAction(messageTxt);
-
-                    if (allowedToTalk) {
-                        messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
-                        if (!llamaProcess.isAlive() || llamaHandler.isAlive()) {
+                    if (handleBotAction(messageTxt) && allowedToTalk) {
+                        if(!oneOne) {
+                            messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
+                        }
+                        if (llamaProcess == null || llamaHandler == null || !llamaProcess.isAlive() || llamaHandler.isAlive()) {
                             startLlama();
                             System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
                         }
@@ -110,30 +112,32 @@ public class ChatThread {
         }
     }
 
-    public void handleBotAction(String message) {
+    public boolean handleBotAction(String message) {
         try {
-            if (message.equalsIgnoreCase(Main.joiningNickname + " stop") && allowedToTalk) {
+            if ((message.equalsIgnoreCase(Main.joiningNickname + " stop") || message.equalsIgnoreCase("stop") && oneOne) && allowedToTalk) {
                 allowedToTalk = false;
                 sendMessage("Disabled responses");
-            }
-            if (message.equalsIgnoreCase(Main.joiningNickname + " start") && !allowedToTalk) {
+                return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " start") || message.equalsIgnoreCase("start") && oneOne) && !allowedToTalk) {
                 allowedToTalk = true;
                 sendMessage("Enabled responses");
-            }
-            if (message.equalsIgnoreCase(Main.joiningNickname + " status")) {
+                return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " status") || message.equalsIgnoreCase("status") && oneOne)) {
                 sendMessage("Still here...");
-            }
-            if (message.equalsIgnoreCase(Main.joiningNickname + " restart")) {
+                return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " restart") || message.equalsIgnoreCase("restart") && oneOne)) {
                 restartLlama();
                 sendMessage("Restarting llama.cpp");
-            }
-            if (message.equalsIgnoreCase(Main.joiningNickname + " halt")) {
-                sendMessage("Goodbye!");
+                return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " halt") || message.equalsIgnoreCase("halt") && oneOne)) {
                 stopLlama();
+                sendMessage("Goodbye!");
+                return false;
             }
         } catch (JaxmppException e) {
             e.printStackTrace();
         }
+        return true;
     }
 
     public static boolean checkLine(String line) {
