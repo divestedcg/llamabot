@@ -21,45 +21,58 @@ public class ChatThread {
     private Thread llamaHandler;
     private static Scanner llamaIn = null;
     private static PrintWriter llamaOutPrinter = null;
+    private String name = "";
 
-    public void ChatThread(Chat chat) {
+    public ChatThread(Chat chat) {
         handlingChat = chat;
+        name = chat.getJid().toString();
+        System.out.println("[DEBUG CREATED NEW THREAD @ " + name + "]");
     }
 
-    public void ChatThread(Room room) {
+    public ChatThread(Room room) {
         handlingRoom = room;
+        name = room.getRoomJid().toString();
+        System.out.println("[DEBUG CREATED NEW THREAD @ " + name + "]");
     }
 
     private void sendMessage(String message) throws JaxmppException {
         if(handlingChat != null) {
             Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
+            System.out.println("[DEBUG SEND TO USER @ " + name + "]" + message);
         }
         if(handlingRoom != null) {
             Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
+            System.out.println("[DEBUG SEND TO ROOM @ " + name + "]" + message);
         }
     }
 
-    public void handleMessage(Message message) throws XMLException {
-        if(message != null) {
-            String messageTxt = message.getBody();
+    public void handleMessage(Message message) {
+        try {
+            if (message != null && message.getBody() != null) {
+                String messageTxt = message.getBody();
+                System.out.println("[DEBUG RECV @ " + name + "] " + messageTxt);
 
-            if (messageTxt.startsWith(Main.joiningNickname) && checkLine(messageTxt)) {
-                handleBotAction(messageTxt);
+                if (messageTxt.startsWith(Main.joiningNickname) && checkLine(messageTxt)) {
+                    System.out.println("[DEBUG PROCESSING @ " + name + "]");
+                    handleBotAction(messageTxt);
 
-                if(allowedToTalk) {
-                    messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
-                    if(!llamaProcess.isAlive() || llamaHandler.isAlive()) {
-                        startLlama();
-                    }
-                    if(llamaOutPrinter != null) {
-                        llamaOutPrinter.println(messageTxt);
-                        llamaOutPrinter.flush();
+                    if (allowedToTalk) {
+                        messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
+                        if (!llamaProcess.isAlive() || llamaHandler.isAlive()) {
+                            startLlama();
+                            System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
+                        }
+                        if (llamaOutPrinter != null) {
+                            System.out.println("[DEBUG SEND TO BOT @ " + name + "]");
+                            llamaOutPrinter.println(messageTxt);
+                            llamaOutPrinter.flush();
+                        }
                     }
                 }
             }
-
+        } catch(Exception e) {
+            e.printStackTrace();
         }
-
     }
 
     public void startLlama() {

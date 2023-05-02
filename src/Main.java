@@ -38,8 +38,7 @@ public class Main {
     private static String botAccount = "";
     private static String botAccountPassword = "";
     private static File cfgRooms;
-
-    private static HashMap<String, ChatThread>
+    private static HashMap<String, ChatThread> chatThreads = new HashMap<>();
 
     public static void main(String[] args) {
         boolean fatal = false;
@@ -93,10 +92,21 @@ public class Main {
             bot.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(botAccount));
             bot.getProperties().setUserProperty(SessionObject.PASSWORD, botAccountPassword);
             bot.getEventBus().addHandler(MessageModule.MessageReceivedHandler.MessageReceivedEvent.class, (sessionObject, chat, message) -> {
-
+                System.out.println("Received message " + message);
+                if(chatThreads.containsKey(chat.getJid().toString())) {
+                    chatThreads.get(chat.getJid().toString()).handleMessage(message);
+                } else {
+                    chatThreads.put(chat.getJid().toString(), new ChatThread(chat));
+                    chatThreads.get(chat.getJid().toString()).handleMessage(message);
+                }
             });
             bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
-
+                if(chatThreads.containsKey(room.getRoomJid().toString())) {
+                    chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                } else {
+                    chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
+                    chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                }
             });
             bot.login();
             int tryCounter = 0;
