@@ -114,7 +114,7 @@ public class ChatThread {
                                 System.out.println("[DEBUG STARTED SUCCESSFULLY @ " + name + "]");
                             }
                         }
-                        Thread.sleep(50);
+                        Thread.sleep(250);
                     } catch (Exception e) {
                         e.printStackTrace();
                         running = false;
@@ -128,6 +128,11 @@ public class ChatThread {
                 while (!stopped) {
                     if ((System.currentTimeMillis() - lastMessageReceived) >= (1000 * 60 * 10)) {
                         stopLlama();
+                    }
+                    try {
+                        Thread.sleep(10000);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
                 }
                 System.out.println("Stopped thread for " + name + " due to timeout");
