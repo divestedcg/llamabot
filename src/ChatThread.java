@@ -41,11 +41,11 @@ public class ChatThread {
     private void sendMessage(String message) throws JaxmppException {
         if(handlingChat != null) {
             Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
-            System.out.println("[DEBUG SEND TO USER @ " + name + "] " + message);
+            System.out.println("[DEBUG SEND TO USER @ " + name + "] " /*+ message*/);
         }
         if(handlingRoom != null) {
             Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
-            System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " + message);
+            System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " /*+ message*/);
         }
     }
 
@@ -53,7 +53,7 @@ public class ChatThread {
         try {
             if (message != null && message.getBody() != null) {
                 String messageTxt = message.getBody();
-                System.out.println("[DEBUG RECV @ " + name + "] " + messageTxt);
+                System.out.println("[DEBUG RECV @ " + name + "] " /*+ message*/);
 
                 if ((messageTxt.startsWith(Main.joiningNickname) || oneOne) && checkLine(messageTxt)) {
                     System.out.println("[DEBUG PROCESSING @ " + name + "]");
