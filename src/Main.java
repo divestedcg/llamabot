@@ -34,7 +34,7 @@ import java.util.*;
 public class Main {
 
     public static final Jaxmpp bot = new Jaxmpp();
-    public static String joiningNickname = "chariclea" + new Random().nextInt(10000);
+    public static String joiningNickname = "llamabot" + new Random().nextInt(10000);
 
     private static String botAccount = "";
     private static String botAccountPassword = "";
