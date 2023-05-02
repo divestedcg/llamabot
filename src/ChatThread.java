@@ -41,7 +41,7 @@ public class ChatThread {
     }
 
     private void sendMessage(String message) throws JaxmppException {
-        message = message.trim().replaceAll("\\p{Cntrl}", " -- ");
+        message = message.trim().replaceAll("\\p{Cntrl}", " --- ");
         if(StandardCharsets.UTF_8.newEncoder().canEncode(message)) {
             if (handlingChat != null) {
                 Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
@@ -60,7 +60,7 @@ public class ChatThread {
         try {
             lastMessageReceived = System.currentTimeMillis();
             if (message != null && message.getBody() != null) {
-                String messageTxt = message.getBody().trim();
+                String messageTxt = message.getBody().trim().replaceAll("\\p{Cntrl}", " ").trim();
                 System.out.println("[DEBUG RECV @ " + name + "] " /*+ message*/);
 
                 if ((messageTxt.startsWith(Main.joiningNickname) || oneOne) && checkLine(messageTxt)) {
@@ -172,7 +172,7 @@ public class ChatThread {
     }
 
     public boolean checkLine(String line) {
-        return !line.startsWith("> ") && !line.startsWith("https://") && !line.startsWith("http://") && StandardCharsets.US_ASCII.newEncoder().canEncode(line);
+        return !line.startsWith("> ") && !line.startsWith("https://") && !line.startsWith("http://") && StandardCharsets.UTF_8.newEncoder().canEncode(line);
     }
 
     public void stopLlama() {
