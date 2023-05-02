@@ -19,17 +19,19 @@ import tigase.jaxmpp.core.client.BareJID;
 import tigase.jaxmpp.core.client.SessionObject;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
 import tigase.jaxmpp.core.client.xml.XMLException;
-import tigase.jaxmpp.core.client.xmpp.modules.chat.Chat;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.MucModule;
-import tigase.jaxmpp.core.client.xmpp.modules.muc.Room;
-import tigase.jaxmpp.core.client.xmpp.stanzas.Message;
 import tigase.jaxmpp.j2se.Jaxmpp;
 import tigase.jaxmpp.j2se.Presence;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+import java.util.Scanner;
 
 public class Main {
 
@@ -39,7 +41,7 @@ public class Main {
     private static String botAccount = "";
     private static String botAccountPassword = "";
     private static File cfgRooms;
-    private static HashMap<String, ChatThread> chatThreads = new HashMap<>();
+    private static final HashMap<String, ChatThread> chatThreads = new HashMap<>();
 
     public static void main(String[] args) {
         boolean fatal = false;
@@ -95,7 +97,7 @@ public class Main {
             bot.getEventBus().addHandler(MessageModule.MessageReceivedHandler.MessageReceivedEvent.class, (sessionObject, chat, message) -> {
                 try {
                     if (chat != null && chat.getJid() != null && chat.getJid().getBareJid() != null && message != null && message.getBody() != null) {
-                        if(chatThreads.containsKey(chat.getJid().getBareJid().toString())) {
+                        if (chatThreads.containsKey(chat.getJid().getBareJid().toString())) {
                             chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
                         } else {
                             chatThreads.put(chat.getJid().getBareJid().toString(), new ChatThread(chat));
@@ -108,9 +110,9 @@ public class Main {
             });
             bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
                 try {
-                    if(room != null && room.getRoomJid() != null && message != null && message.getBody() != null) {
-                        if(message.getBody().startsWith(joiningNickname)) {
-                            if(chatThreads.containsKey(room.getRoomJid().toString())) {
+                    if (room != null && room.getRoomJid() != null && message != null && message.getBody() != null) {
+                        if (message.getBody().startsWith(joiningNickname)) {
+                            if (chatThreads.containsKey(room.getRoomJid().toString())) {
                                 chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
                             } else {
                                 chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
@@ -128,13 +130,13 @@ public class Main {
                 connectToRooms(cfgRooms);
 
                 while (true) { //XXX: This shouldn't be necessary, but my connection is killed without it?
-                    if(!bot.isConnected()) {
+                    if (!bot.isConnected()) {
                         joiningNickname = "llamabot" + new Random().nextInt(10000);
                         bot.login(true);
                         connectToRooms(cfgRooms);
                         System.out.println("[INIT] Reconnected as " + joiningNickname);
                     }
-                    Thread.sleep(1000);
+                    Thread.sleep(10000);
                     bot.keepalive();
                 }
             } else {

@@ -1,11 +1,9 @@
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
-import tigase.jaxmpp.core.client.xml.XMLException;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.Chat;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.MucModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.Room;
 import tigase.jaxmpp.core.client.xmpp.stanzas.Message;
-import tigase.jaxmpp.j2se.Jaxmpp;
 
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -42,11 +40,11 @@ public class ChatThread {
     }
 
     private void sendMessage(String message) throws JaxmppException {
-        if(handlingChat != null) {
+        if (handlingChat != null) {
             Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
             System.out.println("[DEBUG SEND TO USER @ " + name + "] " /*+ message*/);
         }
-        if(handlingRoom != null) {
+        if (handlingRoom != null) {
             Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
             System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " /*+ message*/);
         }
@@ -62,7 +60,7 @@ public class ChatThread {
                 if ((messageTxt.startsWith(Main.joiningNickname) || oneOne) && checkLine(messageTxt)) {
                     System.out.println("[DEBUG PROCESSING @ " + name + "]");
                     if (handleBotAction(messageTxt) && allowedToTalk) {
-                        if(!oneOne) {
+                        if (!oneOne) {
                             messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
                         }
                         if (llamaProcess == null || llamaHandler == null || stopped) {
@@ -76,7 +74,7 @@ public class ChatThread {
                     }
                 }
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -85,26 +83,30 @@ public class ChatThread {
         try {
             stopped = false;
             System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
+            if (oneOne) {
+                sendMessage("Starting, please wait a moment...");
+            }
             llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
             llamaIn = new Scanner(new InputStreamReader(llamaProcess.getInputStream()));
             llamaOutPrinter = new PrintWriter(new OutputStreamWriter(llamaProcess.getOutputStream()));
             llamaHandler = new Thread(() -> {
                 boolean llamaStarted = false;
                 boolean running = true;
-                while(running) {
+                while (running) {
                     try {
-                        while(llamaIn.hasNextLine()) {
+                        while (llamaIn.hasNextLine()) {
                             String line = llamaIn.nextLine();
 
-                            if(llamaStarted) {
+                            if (llamaStarted) {
                                 line = line.trim().replaceAll("User:Bob:", "").replaceAll("Bob:", "").replaceAll("User:", "").trim();
-                                if(line.length() > 3) {
+                                if (line.length() > 3) {
                                     sendMessage(line);
                                 }
                             }
 
-                            if(line.startsWith("Bob: Blue")) {
+                            if (line.startsWith("Bob: Blue")) {
                                 llamaStarted = true;
+                                System.out.println("[DEBUG STARTED SUCCESSFULLY @ " + name + "]");
                             }
                         }
                         Thread.sleep(50);
@@ -118,8 +120,8 @@ public class ChatThread {
             llamaHandler.start();
 
             new Thread(() -> {
-                while(!stopped) {
-                    if((System.currentTimeMillis() - lastMessageReceved) >= (1000*60*10)) {
+                while (!stopped) {
+                    if ((System.currentTimeMillis() - lastMessageReceved) >= (1000 * 60 * 10)) {
                         stopLlama();
                     }
                 }
@@ -166,31 +168,31 @@ public class ChatThread {
         try {
             llamaOutPrinter.close();
             llamaOutPrinter.close();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         try {
             llamaIn.close();
             llamaIn.close();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         try {
             llamaHandler.interrupt();
             llamaHandler.interrupt();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         try {
             llamaHandler.stop();
             llamaHandler.stop();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         try {
             llamaProcess.destroyForcibly();
             llamaProcess.destroyForcibly();
-        } catch(Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         llamaHandler = null;
