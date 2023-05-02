@@ -23,6 +23,8 @@ public class ChatThread {
     private PrintWriter llamaOutPrinter = null;
     private String name = "";
     public boolean oneOne = false;
+    private long lastMessageReceved = System.currentTimeMillis();
+    private boolean stopped = true;
 
     public ChatThread(Chat chat) {
         handlingChat = chat;
@@ -51,6 +53,7 @@ public class ChatThread {
 
     public void handleMessage(Message message) {
         try {
+            lastMessageReceved = System.currentTimeMillis();
             if (message != null && message.getBody() != null) {
                 String messageTxt = message.getBody();
                 System.out.println("[DEBUG RECV @ " + name + "] " /*+ message*/);
@@ -61,7 +64,7 @@ public class ChatThread {
                         if(!oneOne) {
                             messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
                         }
-                        if (llamaProcess == null || llamaHandler == null) {
+                        if (llamaProcess == null || llamaHandler == null || stopped) {
                             startLlama();
                         }
                         if (llamaOutPrinter != null) {
@@ -79,6 +82,7 @@ public class ChatThread {
 
     public void startLlama() {
         try {
+            stopped = false;
             System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
             llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
             llamaIn = new Scanner(new InputStreamReader(llamaProcess.getInputStream()));
@@ -111,6 +115,15 @@ public class ChatThread {
                 }
             });
             llamaHandler.start();
+
+            new Thread(() -> {
+                while(!stopped) {
+                    if((System.currentTimeMillis() - lastMessageReceved) >= (1000*60*10)) {
+                        stopLlama();
+                    }
+                }
+                System.out.println("Stopped thread for " + name + " due to timeout");
+            }).start();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -183,6 +196,7 @@ public class ChatThread {
         llamaProcess = null;
         llamaOutPrinter = null;
         llamaIn = null;
+        stopped = true;
     }
 
     public void restartLlama() {

@@ -127,7 +127,7 @@ public class Main {
 
                 while (true) { //XXX: This shouldn't be necessary, but my connection is killed without it?
                     if(!bot.isConnected()) {
-                        joiningNickname = "chariclea" + new Random().nextInt(10000);
+                        joiningNickname = "llamabot" + new Random().nextInt(10000);
                         bot.login(true);
                         connectToRooms(cfgRooms);
                         System.out.println("[INIT] Reconnected as " + joiningNickname);
