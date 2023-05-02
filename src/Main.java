@@ -18,6 +18,7 @@
 import tigase.jaxmpp.core.client.BareJID;
 import tigase.jaxmpp.core.client.SessionObject;
 import tigase.jaxmpp.core.client.exceptions.JaxmppException;
+import tigase.jaxmpp.core.client.xml.XMLException;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.Chat;
 import tigase.jaxmpp.core.client.xmpp.modules.chat.MessageModule;
 import tigase.jaxmpp.core.client.xmpp.modules.muc.MucModule;
@@ -92,23 +93,31 @@ public class Main {
             bot.getProperties().setUserProperty(SessionObject.USER_BARE_JID, BareJID.bareJIDInstance(botAccount));
             bot.getProperties().setUserProperty(SessionObject.PASSWORD, botAccountPassword);
             bot.getEventBus().addHandler(MessageModule.MessageReceivedHandler.MessageReceivedEvent.class, (sessionObject, chat, message) -> {
-                if (chat != null && chat.getJid() != null) {
-                    if(chatThreads.containsKey(chat.getJid().toString())) {
-                        chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
-                    } else {
-                        chatThreads.put(chat.getJid().getBareJid().toString(), new ChatThread(chat));
-                        chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
+                try {
+                    if (chat != null && chat.getJid() != null && chat.getJid().getBareJid() != null && message != null && message.getBody() != null) {
+                        if(chatThreads.containsKey(chat.getJid().getBareJid().toString())) {
+                            chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
+                        } else {
+                            chatThreads.put(chat.getJid().getBareJid().toString(), new ChatThread(chat));
+                            chatThreads.get(chat.getJid().getBareJid().toString()).handleMessage(message);
+                        }
                     }
+                } catch (XMLException e) {
+                    throw new RuntimeException(e);
                 }
             });
             bot.getEventBus().addHandler(MucModule.MucMessageReceivedHandler.MucMessageReceivedEvent.class, (sessionObject, message, room, nickname, timestamp) -> {
-                if(room != null && room.getRoomJid() != null) {
-                    if(chatThreads.containsKey(room.getRoomJid().toString())) {
-                        chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
-                    } else {
-                        chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
-                        chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                try {
+                    if(room != null && room.getRoomJid() != null && message != null && message.getBody() != null) {
+                        if(chatThreads.containsKey(room.getRoomJid().toString())) {
+                            chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                        } else {
+                            chatThreads.put(room.getRoomJid().toString(), new ChatThread(room));
+                            chatThreads.get(room.getRoomJid().toString()).handleMessage(message);
+                        }
                     }
+                } catch (XMLException e) {
+                    throw new RuntimeException(e);
                 }
             });
             bot.login(true);

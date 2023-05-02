@@ -17,10 +17,10 @@ public class ChatThread {
     private boolean allowedToTalk = true;
     private Room handlingRoom = null;
     private Chat handlingChat = null;
-    private Process llamaProcess;
-    private Thread llamaHandler;
-    private static Scanner llamaIn = null;
-    private static PrintWriter llamaOutPrinter = null;
+    private Process llamaProcess = null;
+    private Thread llamaHandler = null;
+    private Scanner llamaIn = null;
+    private PrintWriter llamaOutPrinter = null;
     private String name = "";
     public boolean oneOne = false;
 
@@ -29,6 +29,7 @@ public class ChatThread {
         name = chat.getJid().getBareJid().toString();
         oneOne = true;
         System.out.println("[DEBUG CREATED NEW THREAD @ " + name + "]");
+        startLlama();
     }
 
     public ChatThread(Room room) {
@@ -40,11 +41,11 @@ public class ChatThread {
     private void sendMessage(String message) throws JaxmppException {
         if(handlingChat != null) {
             Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
-            System.out.println("[DEBUG SEND TO USER @ " + name + "]" + message);
+            System.out.println("[DEBUG SEND TO USER @ " + name + "] " + message);
         }
         if(handlingRoom != null) {
             Main.bot.getModule(MucModule.class).getRoom(handlingRoom.getRoomJid()).sendMessage(message);
-            System.out.println("[DEBUG SEND TO ROOM @ " + name + "]" + message);
+            System.out.println("[DEBUG SEND TO ROOM @ " + name + "] " + message);
         }
     }
 
@@ -60,9 +61,8 @@ public class ChatThread {
                         if(!oneOne) {
                             messageTxt = messageTxt.substring(Main.joiningNickname.length() + 1);
                         }
-                        if (llamaProcess == null || llamaHandler == null || !llamaProcess.isAlive() || llamaHandler.isAlive()) {
+                        if (llamaProcess == null || llamaHandler == null) {
                             startLlama();
-                            System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
                         }
                         if (llamaOutPrinter != null) {
                             System.out.println("[DEBUG SEND TO BOT @ " + name + "]");
@@ -79,12 +79,14 @@ public class ChatThread {
 
     public void startLlama() {
         try {
+            System.out.println("[DEBUG STARTING LLAMA @ " + name + "]");
             llamaProcess = Runtime.getRuntime().exec("/usr/bin/bash examples/chat-13B.sh");
             llamaIn = new Scanner(new InputStreamReader(llamaProcess.getInputStream()));
             llamaOutPrinter = new PrintWriter(new OutputStreamWriter(llamaProcess.getOutputStream()));
             llamaHandler = new Thread(() -> {
                 boolean llamaStarted = false;
-                while(true) {
+                boolean running = true;
+                while(running) {
                     try {
                         while(llamaIn.hasNextLine()) {
                             String line = llamaIn.nextLine();
@@ -103,6 +105,8 @@ public class ChatThread {
                         Thread.sleep(50);
                     } catch (Exception e) {
                         e.printStackTrace();
+                        running = false;
+                        stopLlama();
                     }
                 }
             });
@@ -140,12 +144,24 @@ public class ChatThread {
         return true;
     }
 
-    public static boolean checkLine(String line) {
+    public boolean checkLine(String line) {
         return !line.startsWith("> ") && !line.startsWith("https://") && !line.startsWith("http://");
     }
 
     public void stopLlama() {
         try {
+            llamaOutPrinter.close();
+            llamaOutPrinter.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        try {
+            llamaIn.close();
+            llamaIn.close();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+        try {
             llamaHandler.interrupt();
             llamaHandler.interrupt();
         } catch(Exception e) {
@@ -163,6 +179,10 @@ public class ChatThread {
         } catch(Exception e) {
             e.printStackTrace();
         }
+        llamaHandler = null;
+        llamaProcess = null;
+        llamaOutPrinter = null;
+        llamaIn = null;
     }
 
     public void restartLlama() {
