@@ -41,6 +41,7 @@ public class ChatThread {
     }
 
     private void sendMessage(String message) throws JaxmppException {
+        message = message.trim().replaceAll("\\r\\n|\\r|\\n", " -- ");
         if(StandardCharsets.US_ASCII.newEncoder().canEncode(message)) {
             if (handlingChat != null) {
                 Main.bot.getModule(MessageModule.class).sendMessage(handlingChat, message);
