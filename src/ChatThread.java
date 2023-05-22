@@ -31,6 +31,7 @@ import java.util.Scanner;
 public class ChatThread {
 
     private boolean allowedToTalk = true;
+    private boolean timeout = true;
     private Room handlingRoom = null;
     private Chat handlingChat = null;
     private Process llamaProcess = null;
@@ -114,8 +115,7 @@ public class ChatThread {
             llamaOutPrinter = new PrintWriter(new OutputStreamWriter(llamaProcess.getOutputStream()));
             llamaHandler = new Thread(() -> {
                 boolean llamaStarted = false;
-                boolean running = true;
-                while (running) {
+                while (!stopped) {
                     try {
                         while (llamaIn.hasNextLine()) {
                             String line = llamaIn.nextLine();
@@ -135,7 +135,6 @@ public class ChatThread {
                         Thread.sleep(250);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        running = false;
                         stopLlama();
                     }
                 }
@@ -144,7 +143,7 @@ public class ChatThread {
 
             new Thread(() -> {
                 while (!stopped) {
-                    if ((System.currentTimeMillis() - lastMessageReceived) >= (1000 * 60 * 10)) {
+                    if ((System.currentTimeMillis() - lastMessageReceived) >= (1000 * 60 * 10) && timeout) {
                         stopLlama();
                     }
                     try {
@@ -181,6 +180,24 @@ public class ChatThread {
                 stopLlama();
                 sendMessage("Goodbye!");
                 return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " source") || message.equalsIgnoreCase("source") && oneOne)) {
+                sendMessage("llama.cpp Source Code (MIT): https://github.com/ggerganov/llama.cpp");
+                sendMessage("Llamabot Source Code (AGPL-3.0): https://github.com/divestedcg/llamabot");
+                return false;
+            } else if ((message.equalsIgnoreCase(Main.joiningNickname + " timeout") || message.equalsIgnoreCase("timeout") && oneOne)) {
+                timeout = !timeout;
+                sendMessage("Process timeout is now " + timeout);
+                return false;
+            }  else if ((message.equalsIgnoreCase(Main.joiningNickname + " help") || message.equalsIgnoreCase("help") && oneOne)) {
+                sendMessage("The following commands are supported, they must have the name before without any comma or colon in between.");
+                sendMessage("stop: disallow talking");
+                sendMessage("start: allow talking");
+                sendMessage("status: simple ping");
+                sendMessage("restart: restart the llama.cpp process");
+                sendMessage("halt: terminate the llama.cpp process");
+                sendMessage("timeout: toggle the 10 minute process timeout");
+                sendMessage("source: link the source code");
+                return false;
             }
         } catch (JaxmppException e) {
             e.printStackTrace();
@@ -193,6 +210,7 @@ public class ChatThread {
     }
 
     public void stopLlama() {
+        stopped = true;
         try {
             llamaOutPrinter.close();
             llamaOutPrinter.close();
@@ -227,7 +245,6 @@ public class ChatThread {
         llamaProcess = null;
         llamaOutPrinter = null;
         llamaIn = null;
-        stopped = true;
     }
 
     public void restartLlama() {

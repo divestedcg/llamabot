@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: localhost <localhost@localhost>
+Date: Sun, 21 May 2023 13:07:25 -0400
+Subject: [PATCH] DNM: adjust for llamabot
+
+---
+ .gitignore           | 2 ++
+ examples/chat-13B.sh | 8 ++++----
+ prompts/chat.txt     | 4 ++--
+ 3 files changed, 8 insertions(+), 6 deletions(-)
+
+diff --git a/.gitignore b/.gitignore
+index d231f3f..d1373c4 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -48,3 +48,5 @@ qnt-*.txt
+ perf-*.txt
+ 
+ examples/jeopardy/results.txt
++*.jar
++config
+diff --git a/examples/chat-13B.sh b/examples/chat-13B.sh
+index 35c089d..53cf730 100755
+--- a/examples/chat-13B.sh
++++ b/examples/chat-13B.sh
+@@ -6,11 +6,11 @@ cd "$(dirname "$0")/.." || exit
+ 
+ MODEL="${MODEL:-./models/13B/ggml-model-q4_0.bin}"
+ PROMPT_TEMPLATE=${PROMPT_TEMPLATE:-./prompts/chat.txt}
+-USER_NAME="${USER_NAME:-USER}"
+-AI_NAME="${AI_NAME:-ChatLLaMa}"
++USER_NAME="${USER_NAME:-User}"
++AI_NAME="${AI_NAME:-Bob}"
+ 
+ # Adjust to the number of CPU cores you want to use.
+-N_THREAD="${N_THREAD:-8}"
++N_THREAD="${N_THREAD:-12}"
+ # Number of tokens to predict (made it larger than default because we want a long interaction)
+ N_PREDICTS="${N_PREDICTS:-2048}"
+ 
+@@ -34,7 +34,7 @@ sed -e "s/\[\[USER_NAME\]\]/$USER_NAME/g" \
+   --model "$MODEL" \
+   --threads "$N_THREAD" \
+   --n_predict "$N_PREDICTS" \
+-  --color --interactive \
++  --interactive \
+   --file ${PROMPT_FILE} \
+   --reverse-prompt "${USER_NAME}:" \
+   --in-prefix ' ' \
+diff --git a/prompts/chat.txt b/prompts/chat.txt
+index 5452a18..9ed225d 100644
+--- a/prompts/chat.txt
++++ b/prompts/chat.txt
+@@ -21,8 +21,8 @@ The transcript only includes text, it does not include markup like HTML and Mark
+     argv[1] is the path to the script file.
+     argv[2] is the first argument passed to the script.
+     argv[3] is the second argument passed to the script and so on.
+-[[USER_NAME]]: Name a color.
+-[[AI_NAME]]: Blue.
+ [[USER_NAME]]: What time is it?
+ [[AI_NAME]]: It is [[DATE_TIME]].
++[[USER_NAME]]: Name a color.
++[[AI_NAME]]: Blue.
+ [[USER_NAME]]:
