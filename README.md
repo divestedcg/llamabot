@@ -13,6 +13,7 @@ Quick Start
 - Populate Rooms.txt with rooms you want to interact with
 - Populate Account.txt with first line JID and second line password for the bot account
 - You can also message the bot 1:1, but it has issues with MAM and repeating itself
+- Run it! `java -jar XMPP-LLaMA-*.jar config`
 
 Known Issues
 ------------
